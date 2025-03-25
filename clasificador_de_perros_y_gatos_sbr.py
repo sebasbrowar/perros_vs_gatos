@@ -250,7 +250,7 @@ model_rr.compile(optimizer='adam',
 # Entrenamiento del modelo
 history_rr = model_rr.fit(
     X_train, y_train,
-    epochs=50,
+    epochs=100,
     batch_size=32,
     validation_data=(X_val, y_val),
 )
@@ -321,7 +321,7 @@ model_cnn.compile(optimizer='adam',
 # Entrenamiento del modelo
 history_cnn = model_cnn.fit(
     X_train, y_train,
-    epochs=50,
+    epochs=100,
     batch_size=32,
     validation_data=(X_val, y_val),
 )
