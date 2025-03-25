@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Clasificador Perros/Gatos</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    #resultado {
+      font-weight: bold;
+      font-size: 6rem;
+      text-align: center;
+    }
+    .modelo-info {
+      background-color: #f8f9fa;
+      padding: 0.5rem;
+      border-radius: 0.5rem;
+      margin-top: 1rem;
+      font-size: 1.1rem;
+    }
+    .modelo-badge {
+      font-weight: bold;
+      color: #0d6efd;
+    }
+    #video {
+      display: none;
+    }
+    .btn-modelo {
+      margin: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="px-4 py-2 my-2 text-center border-bottom">
+      <img class="d-block mx-auto mb-2" src="mcd.png" alt="" width="80" height="80">
+      <h1 class="display-5 fw-bold">Clasificador Perros/Gatos</h1>
+      <div class="col-lg-6 mx-auto">
+        <p class="lead mb-0">Usando TensorFlow.js con diferentes modelos</p>
+        <p class="lead mb-0">Sebastián Browarski Ruiz</p>
+        <p class="lead mb-0">MCD - Redes Neuronales</p>
+      </div>
+    </div>
+
+    <div class="container mt-5">
+      <div class="row">
+        <div class="col-12 col-md-6 offset-md-3 text-center">
+          <!-- Elementos de la cámara -->
+          <video id="video" playsinline autoplay></video>
+          <button class="btn btn-primary btn-modelo" id="cambiar-camara" onclick="cambiarCamara();">Cambiar Cámara</button>
+
+          <!-- Selector de Modelo -->
+          <div class="mt-3">
+            <button class="btn btn-secondary btn-modelo" id="cambiar-modelo" onclick="cambiarModelo();">Cambiar Modelo</button>
+            <div class="modelo-info">
+              Modelo actual: <span id="modelo-actual" class="modelo-badge">Red Regular</span>
+            </div>
+          </div>
+
+          <!-- Canvas para visualización -->
+          <canvas id="canvas" width="400" height="400" style="max-width: 100%; margin-top: 1rem;"></canvas>
+          <canvas id="otrocanvas" width="150" height="150" style="display: none;"></canvas>
+
+          <!-- Resultado -->
+          <div id="resultado" class="mt-3"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@2.0.0/dist/tf.min.js"></script>
+
+  <script>
+    // Configuración inicial
+    const tamano = 400;
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+    const otrocanvas = document.getElementById("otrocanvas");
+    const ctx = canvas.getContext("2d");
+    let currentStream = null;
+    let facingMode = "user";
+    let modelo = null;
+
+    // Configuración de modelos
+    const modelos = {
+      rr: "tfjs_model_rr/model.json",    // Red Regular
+      cnn: "tfjs_model_cnn/model.json"   // CNN
+    };
+    let modeloActual = "rr"; // Modelo inicial (Red Regular)
+
+    // Función para actualizar el texto del modelo
+    function actualizarModeloTexto() {
+      const textoModelo = modeloActual === "rr" ? "Red Regular" : "CNN";
+      document.getElementById("modelo-actual").textContent = textoModelo;
+    }
+
+    // Cargar modelo inicial
+    (async() => {
+      console.log("Cargando modelo inicial...");
+      try {
+        modelo = await tf.loadLayersModel(modelos[modeloActual]);
+        actualizarModeloTexto();
+        console.log("Modelo cargado:", modeloActual);
+      } catch (error) {
+        console.error("Error al cargar el modelo inicial:", error);
+        alert("Error al cargar el modelo inicial. Verifica la consola para más detalles.");
+      }
+    })();
+
+    // Iniciar cámara
+    function mostrarCamara() {
+      const opciones = {
+        audio: false,
+        video: {
+          width: tamano,
+          height: tamano,
+          facingMode: facingMode
+        }
+      };
+
+      if (navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia(opciones)
+          .then(function(stream) {
+            currentStream = stream;
+            video.srcObject = currentStream;
+            video.onloadedmetadata = () => {
+              video.play();
+              procesarCamara();
+              predecir();
+            };
+          })
+          .catch(function(err) {
+            console.error("Error al acceder a la cámara:", err);
+            alert("No se pudo acceder a la cámara. Asegúrate de permitir el acceso.");
+          });
+      } else {
+        alert("Tu navegador no soporta la API de medios getUserMedia");
+      }
+    }
+
+    // Cambiar entre cámara frontal/trasera
+    function cambiarCamara() {
+      if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+      }
+
+      facingMode = facingMode === "user" ? "environment" : "user";
+      mostrarCamara();
+    }
+
+    // Cambiar entre modelos
+    async function cambiarModelo() {
+      const nuevoModelo = modeloActual === "rr" ? "cnn" : "rr";
+      console.log("Cambiando a modelo:", nuevoModelo);
+
+      document.getElementById("modelo-actual").textContent = "Cargando...";
+
+      try {
+        // Cargar el nuevo modelo
+        const nuevoModeloCargado = await tf.loadLayersModel(modelos[nuevoModelo]);
+
+        // Eliminar el modelo anterior para liberar memoria
+        if (modelo) {
+          modelo.dispose();
+        }
+
+        // Asignar el nuevo modelo
+        modelo = nuevoModeloCargado;
+        modeloActual = nuevoModelo;
+        actualizarModeloTexto();
+
+        console.log("Modelo cambiado exitosamente a:", nuevoModelo);
+      } catch (error) {
+        console.error("Error al cambiar de modelo:", error);
+        document.getElementById("modelo-actual").textContent = "Error al cargar";
+
+        // Revertir a modelo anterior
+        setTimeout(actualizarModeloTexto, 2000);
+      }
+    }
+
+    // Procesamiento de frames de la cámara
+    function procesarCamara() {
+      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        ctx.drawImage(video, 0, 0, tamano, tamano);
+      }
+      setTimeout(procesarCamara, 20);
+    }
+
+    // Función de predicción
+    function predecir() {
+      if (modelo !== null) {
+        resample_single(canvas, 100, 100, otrocanvas);
+
+        const ctx2 = otrocanvas.getContext("2d");
+        const imgData = ctx2.getImageData(0, 0, 100, 100);
+
+        // Preprocesamiento de la imagen
+        const arr = [];
+        let arr100 = [];
+
+        for (let p = 0; p < imgData.data.length; p += 4) {
+          const rojo = imgData.data[p] / 255;
+          const verde = imgData.data[p+1] / 255;
+          const azul = imgData.data[p+2] / 255;
+          const gris = (rojo + verde + azul) / 3;
+
+          arr100.push([gris]);
+          if (arr100.length === 100) {
+            arr.push(arr100);
+            arr100 = [];
+          }
+        }
+
+        // Crear tensor y hacer predicción
+        const tensor = tf.tensor4d([arr]);
+        const resultado = modelo.predict(tensor).dataSync();
+
+        // Mostrar resultado
+        const respuesta = resultado[0] <= 0.5 ? "Gato" : "Perro";
+        document.getElementById("resultado").textContent = respuesta;
+
+        // Liberar memoria del tensor
+        tensor.dispose();
+      }
+      setTimeout(predecir, 150);
+    }
+
+    // Función para redimensionar imagen (Hermite resize)
+    function resample_single(canvas, width, height, resize_canvas) {
+      const width_source = canvas.width;
+      const height_source = canvas.height;
+      width = Math.round(width);
+      height = Math.round(height);
+
+      const ratio_w = width_source / width;
+      const ratio_h = height_source / height;
+      const ratio_w_half = Math.ceil(ratio_w / 2);
+      const ratio_h_half = Math.ceil(ratio_h / 2);
+
+      const ctx = canvas.getContext("2d");
+      const ctx2 = resize_canvas.getContext("2d");
+      const img = ctx.getImageData(0, 0, width_source, height_source);
+      const img2 = ctx2.createImageData(width, height);
+      const data = img.data;
+      const data2 = img2.data;
+
+      for (let j = 0; j < height; j++) {
+        for (let i = 0; i < width; i++) {
+          const x2 = (i + j * width) * 4;
+          let weight = 0;
+          let weights = 0;
+          let weights_alpha = 0;
+          let gx_r = 0;
+          let gx_g = 0;
+          let gx_b = 0;
+          let gx_a = 0;
+          const center_y = (j + 0.5) * ratio_h;
+          const yy_start = Math.floor(j * ratio_h);
+          const yy_stop = Math.ceil((j + 1) * ratio_h);
+
+          for (let yy = yy_start; yy < yy_stop; yy++) {
+            const dy = Math.abs(center_y - (yy + 0.5)) / ratio_h_half;
+            const center_x = (i + 0.5) * ratio_w;
+            const w0 = dy * dy;
+            const xx_start = Math.floor(i * ratio_w);
+            const xx_stop = Math.ceil((i + 1) * ratio_w);
+
+            for (let xx = xx_start; xx < xx_stop; xx++) {
+              const dx = Math.abs(center_x - (xx + 0.5)) / ratio_w_half;
+              let w = Math.sqrt(w0 + dx * dx);
+              if (w >= 1) continue;
+
+              w = 2 * w * w * w - 3 * w * w + 1;
+              const pos_x = 4 * (xx + yy * width_source);
+
+              gx_a += w * data[pos_x + 3];
+              weights_alpha += w;
+
+              if (data[pos_x + 3] < 255) {
+                w = w * data[pos_x + 3] / 250;
+              }
+
+              gx_r += w * data[pos_x];
+              gx_g += w * data[pos_x + 1];
+              gx_b += w * data[pos_x + 2];
+              weights += w;
+            }
+          }
+
+          data2[x2] = gx_r / weights;
+          data2[x2 + 1] = gx_g / weights;
+          data2[x2 + 2] = gx_b / weights;
+          data2[x2 + 3] = gx_a / weights_alpha;
+        }
+      }
+
+      ctx2.putImageData(img2, 0, 0);
+    }
+
+    // Iniciar la aplicación cuando se cargue la página
+    window.addEventListener('DOMContentLoaded', (event) => {
+      mostrarCamara();
+    });
+  </script>
+</body>
+</html>
