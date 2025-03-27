@@ -1,2 +1,4 @@
 .vercel
 .venv
+/data
+clasificador_pruebas_locales.py

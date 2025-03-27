@@ -7,7 +7,7 @@ Original file is located at
     https://colab.research.google.com/drive/1jZKBnXjZIC427HIn2HW_viw1pC3v5Zmm
 """
 
-#!pip install tensorflowjs
+# !pip install tensorflowjs
 
 """# Librerias"""
 
@@ -18,8 +18,8 @@ import cv2
 import numpy as np
 from sklearn.model_selection import train_test_split
 import tensorflow as tf
-#from tensorflow.keras.models import Sequential
-from tensorflow.keras.regularizers import l2
+# from tensorflow.keras.models import Sequential
+# from tensorflow.keras import regularizers
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout, BatchNormalization
 #from tensorflow.keras.preprocessing.image import ImageDataGenerator
 #from tensorflow.keras.callbacks import TensorBoard
@@ -27,6 +27,7 @@ import itertools
 from sklearn.metrics import confusion_matrix
 
 """# Funciones para graficar"""
+
 
 def plot_training(hist):
     '''
@@ -42,27 +43,27 @@ def plot_training(hist):
     val_lowest = val_loss[index_loss]
     index_acc = np.argmax(val_acc)
     acc_highest = val_acc[index_acc]
-    Epochs = [i+1 for i in range(len(tr_acc))]
+    Epochs = [i + 1 for i in range(len(tr_acc))]
     loss_label = f'best epoch= {str(index_loss + 1)}'
     acc_label = f'best epoch= {str(index_acc + 1)}'
 
     # Plot training history
-    plt.figure(figsize= (20, 8))
+    plt.figure(figsize=(20, 8))
     plt.style.use('fivethirtyeight')
 
     plt.subplot(1, 2, 1)
-    plt.plot(Epochs, tr_loss, 'r', label= 'Training loss')
-    plt.plot(Epochs, val_loss, 'g', label= 'Validation loss')
-    plt.scatter(index_loss + 1, val_lowest, s= 150, c= 'blue', label= loss_label)
+    plt.plot(Epochs, tr_loss, 'r', label='Training loss')
+    plt.plot(Epochs, val_loss, 'g', label='Validation loss')
+    plt.scatter(index_loss + 1, val_lowest, s=150, c='blue', label=loss_label)
     plt.title('Training and Validation Loss')
     plt.xlabel('Epochs')
     plt.ylabel('Loss')
     plt.legend()
 
     plt.subplot(1, 2, 2)
-    plt.plot(Epochs, tr_acc, 'r', label= 'Training Accuracy')
-    plt.plot(Epochs, val_acc, 'g', label= 'Validation Accuracy')
-    plt.scatter(index_acc + 1 , acc_highest, s= 150, c= 'blue', label= acc_label)
+    plt.plot(Epochs, tr_acc, 'r', label='Training Accuracy')
+    plt.plot(Epochs, val_acc, 'g', label='Validation Accuracy')
+    plt.scatter(index_acc + 1, acc_highest, s=150, c='blue', label=acc_label)
     plt.title('Training and Validation Accuracy')
     plt.xlabel('Epochs')
     plt.ylabel('Accuracy')
@@ -71,6 +72,7 @@ def plot_training(hist):
     plt.tight_layout
     plt.show()
     plt.savefig(f'training_{hist}.jpg')
+
 
 def plot_confusion_matrix(cm, classes, normalize=False, title='Confusion Matrix', cmap=plt.cm.Blues):
     '''
@@ -105,76 +107,78 @@ def plot_confusion_matrix(cm, classes, normalize=False, title='Confusion Matrix'
     plt.show()
     plt.savefig(f'confusion_matrix_{title}.jpg')
 
+
 """# Descarga de datos"""
 
-#Correccion temporal (22/mayo/2022)
-#Tensorflow datasets tiene error al descargar el set de perros y gatos y lo solucionaron
-#el 16 de mayo pero sigue fallando en los colabs. Entonces se agrega esta linea adicional
-#Mas detalle aqui: https://github.com/tensorflow/datasets/issues/3918
-setattr(tfds.image_classification.cats_vs_dogs, '_URL',"https://download.microsoft.com/download/3/E/1/3E1C3F21-ECDB-4869-8368-6DEBA77B919F/kagglecatsanddogs_5340.zip")
+# Correccion temporal (22/mayo/2022)
+# Tensorflow datasets tiene error al descargar el set de perros y gatos y lo solucionaron
+# el 16 de mayo pero sigue fallando en los colabs. Entonces se agrega esta linea adicional
+# Mas detalle aqui: https://github.com/tensorflow/datasets/issues/3918
+setattr(tfds.image_classification.cats_vs_dogs, '_URL',
+        "https://download.microsoft.com/download/3/E/1/3E1C3F21-ECDB-4869-8368-6DEBA77B919F/kagglecatsanddogs_5340.zip")
 
-#Descargar el set de datos de perros y gatos
+# Descargar el set de datos de perros y gatos
 datos, metadatos = tfds.load('cats_vs_dogs', as_supervised=True, with_info=True)
 
-#Imprimir los metadatos para revisarlos
+# Imprimir los metadatos para revisarlos
 metadatos
 
-#Una forma de mostrar 5 ejemplos del set
+# Una forma de mostrar 5 ejemplos del set
 tfds.as_dataframe(datos['train'].take(5), metadatos)
 
-#Otra forma de mostrar ejemplos del set
+# Otra forma de mostrar ejemplos del set
 tfds.show_examples(datos['train'], metadatos)
 
-#Manipular y visualizar el set
-#Lo pasamos a TAMANO_IMG (100x100) y a blanco y negro (solo para visualizar)
+# Manipular y visualizar el set
+# Lo pasamos a TAMANO_IMG (100x100) y a blanco y negro (solo para visualizar)
 
-plt.figure(figsize=(20,20))
+plt.figure(figsize=(20, 20))
 
-TAMANO_IMG=100
+TAMANO_IMG = 100
 
 for i, (imagen, etiqueta) in enumerate(datos['train'].take(25)):
-  imagen = cv2.resize(imagen.numpy(), (TAMANO_IMG, TAMANO_IMG))
-  imagen = cv2.cvtColor(imagen, cv2.COLOR_BGR2GRAY)
-  plt.subplot(5, 5, i+1)
-  plt.xticks([])
-  plt.yticks([])
-  plt.imshow(imagen, cmap='gray')
+    imagen = cv2.resize(imagen.numpy(), (TAMANO_IMG, TAMANO_IMG))
+    imagen = cv2.cvtColor(imagen, cv2.COLOR_BGR2GRAY)
+    plt.subplot(5, 5, i + 1)
+    plt.xticks([])
+    plt.yticks([])
+    plt.imshow(imagen, cmap='gray')
 
-#Variable que contendra todos los pares de los datos (imagen y etiqueta) ya modificados (blanco y negro, 100x100)
+# Variable que contendra todos los pares de los datos (imagen y etiqueta) ya modificados (blanco y negro, 100x100)
 datos_entrenamiento = []
 
 """# Manejo de datos"""
 
-for i, (imagen, etiqueta) in enumerate(datos['train']): #Todos los datos
-  imagen = cv2.resize(imagen.numpy(), (TAMANO_IMG, TAMANO_IMG))
-  imagen = cv2.cvtColor(imagen, cv2.COLOR_BGR2GRAY)
-  imagen = imagen.reshape(TAMANO_IMG, TAMANO_IMG, 1) #Cambiar tamano a 100,100,1
-  datos_entrenamiento.append([imagen, etiqueta])
+for i, (imagen, etiqueta) in enumerate(datos['train']):  # Todos los datos
+    imagen = cv2.resize(imagen.numpy(), (TAMANO_IMG, TAMANO_IMG))
+    imagen = cv2.cvtColor(imagen, cv2.COLOR_BGR2GRAY)
+    imagen = imagen.reshape(TAMANO_IMG, TAMANO_IMG, 1)  # Cambiar tamano a 100,100,1
+    datos_entrenamiento.append([imagen, etiqueta])
 
-#Ver los datos del primer indice
+# Ver los datos del primer indice
 datos_entrenamiento[0]
 
-#Ver cuantos datos tengo en la variable
+# Ver cuantos datos tengo en la variable
 len(datos_entrenamiento)
 
-#Preparar mis variables X (entradas) y y (etiquetas) separadas
+# Preparar mis variables X (entradas) y y (etiquetas) separadas
 
-X = [] #imagenes de entrada (pixeles)
-y = [] #etiquetas (perro o gato)
+X = []  # imagenes de entrada (pixeles)
+y = []  # etiquetas (perro o gato)
 
 for imagen, etiqueta in datos_entrenamiento:
-  X.append(imagen)
-  y.append(etiqueta)
+    X.append(imagen)
+    y.append(etiqueta)
 
 X
 
-#Normalizar los datos de las X (imagenes). Se pasan a numero flotante y dividen entre 255 para quedar de 0-1 en lugar de 0-255
+# Normalizar los datos de las X (imagenes). Se pasan a numero flotante y dividen entre 255 para quedar de 0-1 en lugar de 0-255
 
 X = np.array(X).astype(float) / 255
 
 y
 
-#Convertir etiquetas en arreglo simple
+# Convertir etiquetas en arreglo simple
 y = np.array(y)
 
 X.shape
@@ -230,22 +234,26 @@ datagen.fit(X_train)
 # Construcción del modelo
 model_rr = tf.keras.models.Sequential([
     Flatten(input_shape=(100, 100, 1)),  # Aplanar la imagen de 100x100x1
-    Dense(256, activation='relu', kernel_regularizer=l2(0.001)), # Capa oculta con regularización L2
-    BatchNormalization(), # Normalización por lotes
-    Dropout(0.5), # Dropout para evitar overfitting
-    Dense(128, activation='relu', kernel_regularizer=l2(0.001)), # Otra capa oculta
+
+    Dense(256, activation='relu'),  # Capa oculta
+    BatchNormalization(),  # Normalización por lotes
+    Dropout(0.5),  # Dropout para evitar overfitting
+
+    Dense(128, activation='relu'),  # Otra capa oculta
     BatchNormalization(),
     Dropout(0.5),
-    Dense(64, activation='relu', kernel_regularizer=l2(0.001)), # Otra capa oculta
+
+    Dense(64, activation='relu'),  # Otra capa oculta
     BatchNormalization(),
     Dropout(0.5),
+
     Dense(1, activation='sigmoid')  # Capa de salida
 ])
 
 # Compilación del modelo
 model_rr.compile(optimizer='adam',
-              loss='binary_crossentropy',
-              metrics=['accuracy'])
+                 loss='binary_crossentropy',
+                 metrics=['accuracy'])
 
 # Entrenamiento del modelo
 history_rr = model_rr.fit(
@@ -285,38 +293,43 @@ class_names = ['Gato', 'Perro']
 plot_training(history_rr)
 
 # Graficar matriz de confusion
-plot_confusion_matrix(cm_rr, classes=class_names, title = 'Matriz de Confusión - Red Neuronal Regular')
+plot_confusion_matrix(cm_rr, classes=class_names, title='Matriz de Confusión - Red Neuronal Regular')
 
 """## Red Neuronal Convolucional (CNN)"""
 
 # Construcción del modelo
 model_cnn = tf.keras.models.Sequential([
-    Conv2D(32, (3, 3), activation='relu', input_shape=(100, 100, 1), kernel_regularizer=l2(0.001)), # Primera capa convolucional
+    Conv2D(32, (3, 3),  # Primera capa convolucional
+           activation='relu',
+           input_shape=(100, 100, 1)),
     BatchNormalization(),
-    MaxPooling2D(2, 2), # Capa de pooling
-    Dropout(0.25), # Dropout después de pooling
+    MaxPooling2D(2, 2),  # Capa de pooling
+    Dropout(0.25),  # Dropout después de pooling
 
-    Conv2D(64, (3, 3), activation='relu', kernel_regularizer=l2(0.001)), # Segunda capa convolucional
+    Conv2D(64, (3, 3),  # Segunda capa convolucional
+           activation='relu'),
     BatchNormalization(),
     MaxPooling2D(2, 2),
     Dropout(0.25),
 
-    Conv2D(128, (3, 3), activation='relu', kernel_regularizer=l2(0.001)), # Tercera capa convolucional
+    Conv2D(128, (3, 3),  # Tercera capa convolucional
+           activation='relu'),
     BatchNormalization(),
     MaxPooling2D(2, 2),
     Dropout(0.25),
 
     Flatten(),  # Aplanar las características
-    Dense(512, activation='relu', kernel_regularizer=l2(0.001)), # Capa completamente conectada
+    Dense(512,  # Capa completamente conectada
+          activation='relu'),
     BatchNormalization(),
-    Dropout(0.5), # Dropout antes de la capa de salida
-    Dense(1, activation='sigmoid') # Capa de salida
+    Dropout(0.5),  # Dropout antes de la capa de salida
+    Dense(1, activation='sigmoid')  # Capa de salida
 ])
 
 # Compilación del modelo
 model_cnn.compile(optimizer='adam',
-              loss='binary_crossentropy',
-              metrics=['accuracy'])
+                  loss='binary_crossentropy',
+                  metrics=['accuracy'])
 
 # Entrenamiento del modelo
 history_cnn = model_cnn.fit(
@@ -356,7 +369,7 @@ class_names = ['Gato', 'Perro']
 plot_training(history_cnn)
 
 # Graficar matriz de confusion
-plot_confusion_matrix(cm_cnn, classes=class_names, title = 'Matriz de Confusión - Red Neuronal Convolucional (CNN)')
+plot_confusion_matrix(cm_cnn, classes=class_names, title='Matriz de Confusión - Red Neuronal Convolucional (CNN)')
 
 """# Guardar modelos"""
 
@@ -365,15 +378,9 @@ model_rr.save('perros-gatos-rr.h5')
 model_cnn.save('perros-gatos-cnn.h5')
 
 '''
-!tensorflowjs_converter --input_format=keras \
-                       --output_format=tfjs_layers_model \
-                       perros-gatos-rr.h5 \
-                       tfjs_model_rr
-'''
+# Descargamos los modelos en formato .h5 desde la terminal con los siguientes comandos:
 
-'''
-!tensorflowjs_converter --input_format=keras \
-                       --output_format=tfjs_layers_model \
-                       perros-gatos-cnn.h5 \
-                       tfjs_model_cnn
+tensorflowjs_converter --input_format keras perros-gatos-rr.h5 tfjs_model_rr
+
+tensorflowjs_converter --input_format keras perros-gatos-cnn.h5 tfjs_model_cnn
 '''

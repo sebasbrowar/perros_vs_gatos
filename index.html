@@ -13,11 +13,12 @@
         font-size: 6rem;
         text-align: center;
       }
-      #modelo-actual {
-        font-weight: bold;
-        font-size: 1.2rem;
+      #modelo-activo {
+        font-size: 1.5rem;
         text-align: center;
-        margin-top: 10px;
+        margin: 10px 0;
+        color: #0d6efd;
+        font-weight: bold;
       }
     </style>
   </head>
@@ -28,9 +29,8 @@
         <img class="d-block mx-auto mb-2" src="mcd.png" alt="" width="80" height="80">
         <h1 class="display-5 fw-bold">Perros y gatos</h1>
         <div class="col-lg-6 mx-auto">
-          <p class="lead mb-0">Clasificación de imágenes (Perro o Gato) usando la cámara con TensorFlow.js</p>
-          <p class="author-info">Sebastián Browarski Ruiz</p>
-          <p class="course-info">MCD - Redes Neuronales</p>
+          <p class="lead mb-0">Clasificación de imágenes (Perro o Gato) utilizando redes neuronales</p>
+          <p class="lead mb-4">Sebastián Browarski Ruiz</p>
         </div>
       </div>
 
@@ -39,10 +39,10 @@
       <div class="container mt-5">
         <div class="row">
           <div class="col-12 col-md-4 offset-md-4 text-center">
+            <div id="modelo-activo">Modelo activo: Red Neuronal Convolucional (CNN)</div>
+            <button class="btn btn-secondary mb-2" id="cambiar-modelo" onclick="cambiarModelo();">Cambiar modelo</button>
             <video id="video" playsinline autoplay style="width: 1px;"></video>
             <button class="btn btn-primary mb-2" id="cambiar-camara" onclick="cambiarCamara();">Cambiar camara</button>
-            <button class="btn btn-secondary mb-2" id="cambiar-modelo" onclick="cambiarModelo();">Cambiar modelo</button>
-            <div id="modelo-actual">Modelo actual: RR</div>
             <canvas id="canvas" width="400" height="400" style="max-width: 100%;"></canvas>
             <canvas id="otrocanvas" width="150" height="150" style="display: none"></canvas>
             <div id="resultado"></div>
@@ -64,7 +64,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@2.0.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
 
   <script type="text/javascript">
 
@@ -77,32 +77,40 @@
     var facingMode = "user";
 
     var modelo = null;
-    var modeloActual = "RR"; // Puede ser "RR" o "CNN"
+    var modeloActual = "CNN"; // Puede ser "CNN" o "RR"
 
     (async() => {
-      console.log("Cargando modelo...");
-      modelo = await tf.loadLayersModel("tfjs_model_rr/model.json");
-      console.log("Modelo RR cargado");
-      document.getElementById("modelo-actual").innerHTML = "Modelo actual: RR";
+      console.log("Cargando modelo CNN...");
+      modelo = await tf.loadLayersModel("tfjs_model_cnn/model.json");
+      console.log("Modelo CNN cargado");
     })();
 
-    window.onload = function() {
-      mostrarCamara();
+    async function cargarModeloRR() {
+      console.log("Cargando modelo RR...");
+      modelo = await tf.loadLayersModel("tfjs_model_rr/model.json");
+      console.log("Modelo RR cargado");
+    }
+
+    async function cargarModeloCNN() {
+      console.log("Cargando modelo CNN...");
+      modelo = await tf.loadLayersModel("tfjs_model_cnn/model.json");
+      console.log("Modelo CNN cargado");
     }
 
     async function cambiarModelo() {
-      if (modeloActual === "RR") {
-        console.log("Cambiando a modelo CNN...");
-        modelo = await tf.loadLayersModel("tfjs_model_cnn/model.json");
-        modeloActual = "CNN";
-        console.log("Modelo CNN cargado");
-      } else {
-        console.log("Cambiando a modelo RR...");
-        modelo = await tf.loadLayersModel("tfjs_model_rr/model.json");
+      if (modeloActual === "CNN") {
+        await cargarModeloRR();
         modeloActual = "RR";
-        console.log("Modelo RR cargado");
+        document.getElementById("modelo-activo").textContent = "Modelo activo: Red Neuronal Regular";
+      } else {
+        await cargarModeloCNN();
+        modeloActual = "CNN";
+        document.getElementById("modelo-activo").textContent = "Modelo activo: Red Neuronal Convolucional (CNN)";
       }
-      document.getElementById("modelo-actual").innerHTML = "Modelo actual: " + modeloActual;
+    }
+
+    window.onload = function() {
+      mostrarCamara();
     }
 
     function mostrarCamara() {
@@ -164,60 +172,31 @@
     }
 
     function predecir() {
-      if (modelo != null) {
-        resample_single(canvas, 100, 100, otrocanvas);
-
-        //Hacer la predicción
-        var ctx2 = otrocanvas.getContext("2d");
-        var imgData = ctx2.getImageData(0,0, 100, 100);
-
-        if (modeloActual === "RR") {
-          // Procesamiento para modelo RR (igual que antes)
-          var arr = [];
-          var arr100 = [];
-
-          for (var p = 0; p < imgData.data.length; p += 4) {
-            var rojo = imgData.data[p] / 255;
-            var verde = imgData.data[p + 1] / 255;
-            var azul = imgData.data[p + 2] / 255;
-
-            var gris = (rojo + verde + azul) / 3;
-
-            arr100.push([gris]);
-            if (arr100.length == 100) {
-              arr.push(arr100);
-              arr100 = [];
-            }
-          }
-
-          arr = [arr];
-          var tensor = tf.tensor4d(arr);
-        } else {
-          // Procesamiento para modelo CNN (nuevo)
-          var arr = [];
-          for (var p = 0; p < imgData.data.length; p += 4) {
-            arr.push(imgData.data[p] / 255);     // R
-            arr.push(imgData.data[p + 1] / 255);   // G
-            arr.push(imgData.data[p + 2] / 255);   // B
-          }
-          var tensor = tf.tensor4d(arr, [1, 100, 100, 3]);
+        if (!modelo) {
+            setTimeout(predecir, 500);
+            return;
         }
 
-        var resultado = modelo.predict(tensor).dataSync();
+        try {
+            resample_single(canvas, 100, 100, otrocanvas);
+            var ctx2 = otrocanvas.getContext("2d");
+            var imgData = ctx2.getImageData(0, 0, 100, 100);
 
-        var respuesta;
-        if (resultado <= 0.5) {
-          respuesta = "Gato";
-        } else {
-          respuesta = "Perro";
+            // Convertir a tensor 4D directamente
+            var tensor = tf.browser.fromPixels(imgData, 1) // 1 canal = escala de grises
+                .div(255) // Normalizar [0,1]
+                .reshape([1, 100, 100, 1]); // Añadir dimensión batch
+
+            var resultado = modelo.predict(tensor).dataSync()[0];
+
+            var respuesta = resultado < 0.5 ? "Gato" : "Perro";
+            document.getElementById("resultado").innerHTML = respuesta;
+
+        } catch (error) {
+            console.error("Error en predicción:", error);
         }
-        document.getElementById("resultado").innerHTML = respuesta;
 
-        // Liberar memoria del tensor
-        tensor.dispose();
-      }
-
-      setTimeout(predecir, 150);
+        setTimeout(predecir, 150);
     }
 
     /**
